@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ResumeAI | Results</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<header>
+
+    <div class="logo">
+        Resume<span>AI</span>
+    </div>
+
+    <div class="nav-text">
+        AI-Powered Resume Analysis
+    </div>
+
+</header>
+
+
+<main>
+
+    <section class="hero">
+
+        <div class="badge">
+            ✨ ANALYSIS COMPLETE
+        </div>
+
+        <h1>
+            Your Resume
+            <span>Results</span>
+        </h1>
+
+        <p>
+            Here's how well your resume matches the job description.
+        </p>
+
+    </section>
+
+
+    <section class="analyzer-card">
+
+        <div style="text-align:center;">
+
+            <h2>Resume Match Score</h2>
+
+            <div class="score-number">
+                {{ score }}%
+            </div>
+
+            <p style="color:#9ca3af;">
+                Compatibility with the job description
+            </p>
+
+        </div>
+
+
+        <div class="features">
+
+
+            <!-- MATCHING SKILLS -->
+
+            <div class="feature">
+
+                <div class="feature-icon">
+                    ✅
+                </div>
+
+                <h3>
+                    Matching Skills
+                </h3>
+
+                <div class="skills">
+
+                    {% for skill in matching_skills %}
+
+                    <span class="skill">
+                        {{ skill }}
+                    </span>
+
+                    {% endfor %}
+
+                </div>
+
+                {% if not matching_skills %}
+
+                <p>
+                    No matching skills found.
+                </p>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- MISSING SKILLS -->
+
+            <div class="feature">
+
+                <div class="feature-icon">
+                    ⚠️
+                </div>
+
+                <h3>
+                    Missing Skills
+                </h3>
+
+                <div class="skills">
+
+                    {% for skill in missing_skills %}
+
+                    <span class="missing">
+                        {{ skill }}
+                    </span>
+
+                    {% endfor %}
+
+                </div>
+
+                {% if not missing_skills %}
+
+                <p>
+                    Great! No major missing skills.
+                </p>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- RESUME SKILLS -->
+
+            <div class="feature">
+
+                <div class="feature-icon">
+                    📄
+                </div>
+
+                <h3>
+                    Resume Skills
+                </h3>
+
+                <div class="skills">
+
+                    {% for skill in resume_skills %}
+
+                    <span class="skill">
+                        {{ skill }}
+                    </span>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <a href="/"
+           style="
+           display:block;
+           text-align:center;
+           text-decoration:none;
+           padding:16px;
+           border-radius:15px;
+           background:linear-gradient(135deg,#6366f1,#8b5cf6);
+           color:white;
+           font-weight:700;
+           margin-top:25px;
+           ">
+
+            ← Analyze Another Resume
+
+        </a>
+
+    </section>
+
+</main>
+
+
+<footer>
+
+    <div class="footer-logo">
+        Resume<span>AI</span>
+    </div>
+
+    <p>
+        Smart Resume Analysis
+    </p>
+
+    <p class="copyright">
+        © 2026 ResumeAI. Built with Python & Flask.
+    </p>
+
+</footer>
+
+</body>
+
+</html>
