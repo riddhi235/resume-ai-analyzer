@@ -1,267 +1,147 @@
 from flask import Flask, render_template, request
 import os
 import re
-import PyPDF2
+from PyPDF2 import PdfReader
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = "uploads"
-
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Skills that the analyzer can detect
+SKILLS = [
+    "python",
+    "java",
+    "c++",
+    "javascript",
+    "html",
+    "css",
+    "flask",
+    "django",
+    "sql",
+    "mysql",
+    "mongodb",
+    "git",
+    "github",
+    "machine learning",
+    "deep learning",
+    "artificial intelligence",
+    "ai",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "tensorflow",
+    "pytorch",
+    "data analysis",
+    "data science",
+    "excel",
+    "communication",
+    "problem solving",
+    "leadership",
+    "teamwork"
+]
 
-# -----------------------------------
-# Extract text from PDF
-# -----------------------------------
 
-def extract_text_from_pdf(pdf_path):
-
+def extract_text_from_pdf(file_path):
+    """Extract text from uploaded PDF."""
     text = ""
 
-    with open(pdf_path, "rb") as file:
+    reader = PdfReader(file_path)
 
-        reader = PyPDF2.PdfReader(file)
+    for page in reader.pages:
+        page_text = page.extract_text()
 
-        for page in reader.pages:
-
-            page_text = page.extract_text()
-
-            if page_text:
-                text += page_text + "\n"
+        if page_text:
+            text += page_text + "\n"
 
     return text
 
 
-# -----------------------------------
-# Skill extraction
-# -----------------------------------
-
 def extract_skills(text):
-
-    skills_list = [
-
-        "python",
-        "java",
-        "c++",
-        "c",
-        "javascript",
-
-        "html",
-        "css",
-
-        "react",
-        "node.js",
-
-        "flask",
-        "django",
-
-        "sql",
-        "mysql",
-        "mongodb",
-
-        "git",
-        "github",
-
-        "machine learning",
-        "deep learning",
-        "artificial intelligence",
-        "data science",
-
-        "pandas",
-        "numpy",
-        "scikit-learn",
-        "tensorflow",
-        "pytorch",
-
-        "power bi",
-        "excel",
-
-        "communication",
-        "leadership",
-        "problem solving"
-
-    ]
-
+    """Find known skills in text."""
     text = text.lower()
 
     found_skills = []
 
-    for skill in skills_list:
-
-        pattern = r"\b" + re.escape(skill.lower()) + r"\b"
-
-        if re.search(pattern, text):
-
+    for skill in SKILLS:
+        if skill.lower() in text:
             found_skills.append(skill)
 
     return sorted(set(found_skills))
 
 
-# -----------------------------------
-# Calculate match score
-# -----------------------------------
-
-def calculate_match_score(resume_skills, job_skills):
-
-    if not job_skills:
-
-        return 0
-
-    matching_skills = set(resume_skills).intersection(
-        set(job_skills)
-    )
-
-    score = (
-        len(matching_skills)
-        /
-        len(set(job_skills))
-    ) * 100
-
-    return round(score, 2)
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 
-# -----------------------------------
-# Home page
-# -----------------------------------
+@app.route("/analyze", methods=["POST"])
+def analyze():
 
-@app.route("/", methods=["GET", "POST"])
-def index():
+    # Check resume
+    if "resume" not in request.files:
+        return "Please upload a resume PDF."
 
-    result = None
+    resume = request.files["resume"]
 
-    if request.method == "POST":
+    if resume.filename == "":
+        return "Please select a resume PDF."
 
-        resume = request.files.get("resume")
+    # Get job description
+    job_description = request.form.get("job_description", "")
 
-        job_description = request.form.get(
-            "job_description",
-            ""
-        )
+    if not job_description.strip():
+        return "Please enter a job description."
 
-        # Check resume
+    # Save uploaded resume
+    file_path = os.path.join(UPLOAD_FOLDER, resume.filename)
 
-        if not resume:
+    resume.save(file_path)
 
-            result = {
-                "error": "Please upload a resume PDF."
-            }
-
-            return render_template(
-                "index.html",
-                result=result
-            )
-
-
-        # Check PDF
-
-        if not resume.filename.lower().endswith(".pdf"):
-
-            result = {
-                "error": "Only PDF files are supported."
-            }
-
-            return render_template(
-                "index.html",
-                result=result
-            )
-
-
-        # Save resume
-
-        filename = resume.filename
-
-        filepath = os.path.join(
-            app.config["UPLOAD_FOLDER"],
-            filename
-        )
-
-        resume.save(filepath)
-
-
+    try:
         # Extract resume text
+        resume_text = extract_text_from_pdf(file_path)
 
-        resume_text = extract_text_from_pdf(
-            filepath
-        )
-
-
-        # Extract resume skills
-
-        resume_skills = extract_skills(
-            resume_text
-        )
-
-
-        # Extract job skills
-
-        job_skills = extract_skills(
-            job_description
-        )
-
+        # Extract skills
+        resume_skills = extract_skills(resume_text)
+        job_skills = extract_skills(job_description)
 
         # Matching skills
-
-        matching_skills = sorted(
-            set(resume_skills).intersection(
-                set(job_skills)
-            )
-        )
-
+        matching_skills = [
+            skill for skill in job_skills
+            if skill in resume_skills
+        ]
 
         # Missing skills
-
-        missing_skills = sorted(
-            set(job_skills).difference(
-                set(resume_skills)
-            )
-        )
-
+        missing_skills = [
+            skill for skill in job_skills
+            if skill not in resume_skills
+        ]
 
         # Calculate score
+        if len(job_skills) > 0:
+            score = round(
+                (len(matching_skills) / len(job_skills)) * 100
+            )
+        else:
+            score = 0
 
-        score = calculate_match_score(
-            resume_skills,
-            job_skills
+        return render_template(
+            "result.html",
+            score=score,
+            resume_skills=resume_skills,
+            job_skills=job_skills,
+            matching_skills=matching_skills,
+            missing_skills=missing_skills
         )
 
+    except Exception as e:
+        return f"Error while analyzing resume: {str(e)}"
 
-        # Store results
-
-        result = {
-
-            "score": score,
-
-            "resume_skills":
-                resume_skills,
-
-            "job_skills":
-                job_skills,
-
-            "matching_skills":
-                matching_skills,
-
-            "missing_skills":
-                missing_skills
-
-        }
-
-
-    return render_template(
-        "index.html",
-        result=result
-    )
-
-
-# -----------------------------------
-# Run application
-# -----------------------------------
 
 if __name__ == "__main__":
-
     app.run(
         host="0.0.0.0",
-        port=5000,
+        port=5001,
         debug=True
     )
